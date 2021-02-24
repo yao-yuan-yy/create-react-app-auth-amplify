@@ -1,10 +1,14 @@
 import React, { Component } from 'react';
-import './App.css';
+import 'antd/dist/antd.css'
 import { withAuthenticator } from 'aws-amplify-react'
 import Amplify, { Storage, Logger } from 'aws-amplify';
 import aws_exports from './aws-exports';
 import shortid from 'shortid'
-import Task from './components/Task'
+import { message, Button } from 'antd'
+import TaskList from './components/TaskList';
+import {
+  PlusCircleTwoTone
+} from '@ant-design/icons';
 Amplify.configure(aws_exports);
 
 class App extends Component {
@@ -27,42 +31,35 @@ class App extends Component {
   render() {
     return (
       <div>
-        <p>My Awesome Todo List</p>
-        {
-          this.state.tasks.idx
-          .filter(it => !this.state.tasks.dat[it].deleted)
-          .map( it => (
-            <Task key={it} 
-            dat={this.state.tasks.dat[it].desc} 
-            onEdit={this.editTask(it)} 
-            onDelete={this.deleteTask(it)}  
-            checked={this.state.tasks.dat[it].done}
-            onCheck={this.toggleTask(it, true)}
-            onUnCheck={this.toggleTask(it, false)}
-            onInputDone={this.sync}
-            />
-          )
-        )}
-        <button onClick={this.save}> save </button>
-        <button onClick={this.addTask}> add </button>
+        <TaskList tasks={this.state.tasks}
+        editTask={this.editTask}
+        deleteTask={this.deleteTask}
+        toggleTask={this.toggleTask}
+        sync={this.sync}
+        />
+        <Button onClick={this.addTask}> <PlusCircleTwoTone/> </Button>
       </div>
     );
   }
 
   async save() {
+    message.info('start to save')
     this.logger.info('start to save')
     await Storage.put("data.json", JSON.stringify(this.state.tasks))
     this.logger.info('saved')
+    message.info('saved')
     this.synced = true
   }
 
   async query() {
+    message.info('start to query')
     this.logger.info('query')
     const result = await Storage.get('data.json', {download: true})
     const tasks = JSON.parse(result.Body.toString())
     this.logger.info(tasks)
     this.setState({tasks})
     this.synced = true
+    message.info('query done')
   }
 
   async componentDidMount() {
@@ -99,6 +96,7 @@ class App extends Component {
       dat[id].deleted = true
       this.setState({tasks: {idx: this.state.tasks.idx, dat}})
       this.synced = false
+      this.sync()
     }
   }
 
